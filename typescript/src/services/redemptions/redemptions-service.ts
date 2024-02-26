@@ -13,6 +13,7 @@ import {
 } from "../../lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "../../lib/utils"
+import { makeInscriptionBuffer } from "../redeemScripts/makeInscriptionScript"
 
 /**
  * Service exposing features related to tBTC v2 redemptions.
@@ -39,6 +40,7 @@ export class RedemptionsService {
    *                               address types are supported.
    * @param amount The amount to be redeemed with the precision of the tBTC
    *        on-chain token contract.
+   * @param redeemScript The redeem script. Wallet must add its signature to finalize.
    * @returns Object containing:
    *          - Target chain hash of the request redemption transaction
    *            (for example, Ethereum transaction hash)
@@ -47,10 +49,12 @@ export class RedemptionsService {
    */
   async requestRedemption(
     bitcoinRedeemerAddress: string,
-    amount: BigNumber
+    amount: BigNumber,
+    inscription: string | undefined = undefined,
   ): Promise<{
     targetChainTxHash: Hex
     walletPublicKey: Hex
+    redeemInscription: Hex | undefined
   }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
@@ -65,6 +69,11 @@ export class RedemptionsService {
       !BitcoinScriptUtils.isP2WSHScript(redeemerOutputScript)
     ) {
       throw new Error("Redeemer output script must be of standard type")
+    }
+
+    if(inscription !== undefined) {
+      // Validate the redeem script.
+      // TODO
     }
 
     const amountToSatoshi = (value: BigNumber): BigNumber => {
@@ -89,9 +98,15 @@ export class RedemptionsService {
       amount
     )
 
+    // get redeem script
+    const redeemInscription = inscription !== undefined ? Hex.from(
+      await makeInscriptionBuffer(inscription, walletPublicKey.toString(), true)
+    )  : undefined;
+
     return {
       targetChainTxHash: txHash,
       walletPublicKey,
+      redeemInscription,
     }
   }
 
