@@ -54,6 +54,7 @@ export class RedemptionsService {
   ): Promise<{
     targetChainTxHash: Hex
     walletPublicKey: Hex
+    commitInscription: Hex | undefined
     redeemInscription: Hex | undefined
   }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
@@ -99,13 +100,17 @@ export class RedemptionsService {
     )
 
     // get redeem script
-    const redeemInscription = inscription !== undefined ? Hex.from(
+    const commitInscription = inscription !== undefined ? Hex.from(
       await makeInscriptionBuffer(inscription, walletPublicKey.toString(), true)
+    ) : undefined;
+    const redeemInscription = inscription !== undefined ? Hex.from(
+      await makeInscriptionBuffer(inscription, walletPublicKey.toString(), false)
     )  : undefined;
 
     return {
       targetChainTxHash: txHash,
       walletPublicKey,
+      commitInscription,
       redeemInscription,
     }
   }
